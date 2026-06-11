@@ -161,7 +161,7 @@ VESTAはWindowsアプリとして利用するのが簡単です。
 
 ### 6.0 CIFファイルはどこから取得するか
 
-研究で使う結晶構造（CIF）は、まず以下の信頼できる公開データベースから取得するのが基本です。
+研究で使う結晶構造（CIF）は、まず以下の公開データベースから取得できます。Materials Projectは網羅計算で構成されたデータベースなので、ときどきおかしな結果が混ざっています。CODはそれぞれの構造に原著論文が紐付いているので比較的信頼性は高いです。
 
 - Materials Project: https://materialsproject.org/
 - Crystallography Open Database (COD): https://www.crystallography.net/cod/
