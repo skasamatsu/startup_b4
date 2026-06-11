@@ -86,6 +86,23 @@ VS Codeで以下を導入:
 
 研究室では、Miniforge + conda環境を標準運用として推奨します。
 
+### 4.0 初学者向け: なぜ環境を分けるのか
+
+同じPCで複数テーマを進めると、必要なパッケージのバージョンが衝突しやすくなります。
+環境を分けると、次のメリットがあります。
+
+- あるテーマで更新したパッケージが、別テーマを壊しにくい
+- 「この計算はどのライブラリ構成で動いたか」を再現しやすい
+- トラブル時に環境ごと作り直せるため、復旧が速い
+
+最初は「テーマごとに1環境」を目安にすると運用しやすいです。
+
+参考資料（公式）:
+
+- conda environment管理: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+- VS Code Python environments: https://code.visualstudio.com/docs/python/environments
+- conda-forge（パッケージ検索）: https://conda-forge.org/
+
 ### 4.1 Miniforge導入（WSL）
 
 ```bash
