@@ -166,13 +166,80 @@ python md.py
 
 同時に `md_simulation_nvt.traj` が保存されます。
 
-## 7. 結果確認
+## 7. 可視化まで実施する
 
-- OVITOで `md_simulation_nvt.traj` を開いて原子運動を確認
-- 温度が目標値（例: 300 K）近傍で推移するか確認
-- エネルギーが発散していないか確認
+### 7.1 まずファイル生成を確認
+
+```bash
+ls -lh md_simulation_nvt.traj
+```
+
+ファイルサイズが0でなければ、軌道データは書き出されています。
+
+### 7.1.5 trajをexyzに変換（OVITOフリー版対応）
+
+OVITOのフリー版は`.traj`形式に対応していません。
+以下で`.extxyz`形式に変換してから開いてください。
+
+```bash
+ase convert md_simulation_nvt.traj md_simulation_nvt.extxyz
+```
+
+この後の手順では `md_simulation_nvt.extxyz` を OVITOで開いてください。
+
+### 7.2 OVITOで可視化（推奨）
+
+1. OVITOを起動
+2. File -> Load File で `md_simulation_nvt.extxyz` を選択
+3. 画面下の再生ボタンで時間発展を確認
+4. 表示が重い場合は表示品質を一段下げる
+
+見やすくする設定例:
+
+- Particlesの表示サイズを少し上げる
+- Color coding modifierを追加して元素ごとに色分け
+- Simulation cellを表示して、境界条件の感覚をつかむ
+
+### 7.3 画像・動画の書き出し
+
+- 静止画: Viewport右クリックまたはRenderからPNG出力
+- 動画: Render -> Movie でmp4を書き出し
+
+最初は短いフレーム範囲（例: 0-200）で試すと失敗しにくいです。
+
+### 7.4 ASE標準ビューアで簡易確認（任意）
+
+```bash
+python -m ase gui md_simulation_nvt.traj
+```
+
+- 再生ボタンで軌道確認
+- 軽い確認には便利、発表用の図や動画はOVITOの方が作りやすいです
+
+### 7.5 チェックポイント
+
+- 温度が目標値（例: 300 K）近傍で推移している
+- エネルギーが急激に発散していない
+- 原子が不自然に飛び散っていない
 
 ## 8. `md.py` の見どころ（読み方）
+
+### 8.0 コード全体の流れ（概要）
+
+`md.py` は大きく次の順番で処理しています。
+
+1. 構造読み込み
+2. MLポテンシャル（SevenNet）を計算器として設定
+3. 初速度を乱数で与えてMD初期化
+4. Langevin積分器（NVT）を作成
+5. ログ出力関数を `attach` して定期表示
+6. `Trajectory` を `attach` して定期保存
+7. `dyn.run(...)` で本計算を実行
+
+この流れを覚えると、別の系に差し替えるときも
+「入力構造・温度・ステップ数・device」を変更するだけで再利用しやすくなります。
+
+### 8.1 主要部分の見どころ
 
 - `SevenNetCalculator(model='7net-omat', device=device)`
   - 汎用MLポテンシャルの指定
