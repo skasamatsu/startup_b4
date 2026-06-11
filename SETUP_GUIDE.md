@@ -144,8 +144,16 @@ conda install -c conda-forge jupyterlab -y
 
 ### 4.4 VS CodeでInterpreterを設定
 
+- 先に拡張機能 `Python (ms-python.python)` がインストール済みか確認
+- 未導入なら、Extensionsで `Python` を検索してインストール
+- WSLウィンドウ側にも拡張機能のインストール確認（`Install in WSL` が必要な場合あり）
 - `Ctrl + Shift + P` → `Python: Select Interpreter`
 - `Python 3.11 ('mat-sci': conda)` のようなconda環境を選択
+
+うまくいかない場合:
+
+- `Python: Select Interpreter` がコマンド一覧に出ないときは、ほぼ拡張機能未導入です
+- インストール後にVS Codeウィンドウを再読み込み（`Developer: Reload Window`）
 
 ### 4.5 環境の使い分け指針
 
