@@ -25,7 +25,12 @@
 
 ## 2. WSL2 (Ubuntu) のインストール
 
-### 2.1 PowerShell (管理者) で実行
+まず、この章ではコマンドを実行する場所が2つあります。
+
+- Windows側: PowerShell（管理者）
+- Linux側: Ubuntuターミナル（WSL内）
+
+### 2.1 Windows側: PowerShell (管理者) で実行
 
 ```powershell
 wsl --install
@@ -34,15 +39,7 @@ wsl --install
 - 実行後、再起動を求められたら再起動
 - 初回起動時にLinuxユーザー名・パスワードを設定
 
-### 2.2 Ubuntu側の初期更新
-
-```bash
-sudo apt update
-sudo apt upgrade -y
-sudo apt install -y build-essential curl wget unzip zip
-```
-
-### 2.3 WSLバージョン確認
+### 2.2 Windows側: WSLバージョン確認
 
 ```powershell
 wsl -l -v
@@ -50,7 +47,21 @@ wsl -l -v
 
 - `VERSION` が `2` であることを確認
 
-### 2.4 推奨設定
+### 2.3 Ubuntuを起動
+
+- Windowsのスタートメニューから `Ubuntu` を起動
+- もしくはPowerShellで `wsl` を実行してUbuntuシェルに入る
+- プロンプトが `user@PCNAME:~$` のような表示になればUbuntu側です
+
+### 2.4 Ubuntu側: 初期更新
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+sudo apt install -y build-essential curl wget unzip zip
+```
+
+### 2.5 推奨設定
 
 WSL内ホーム配下にプロジェクトを置くと高速です。
 
