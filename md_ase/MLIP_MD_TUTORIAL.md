@@ -155,10 +155,11 @@ dyn.run(2000)
 
 ```bash
 cd md_ase
-python md.py
+python md.py 2>&1 | tee md_run.log
 ```
 
 100ステップごとに、`md.py` の `print_energy()` が以下のようなログを出します。
+この実行例では、標準出力・標準エラー出力をコンソールに表示しながら `md_run.log` にも保存しています。
 
 - Step
 - Temp (K)
