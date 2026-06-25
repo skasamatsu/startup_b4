@@ -2,7 +2,9 @@
 
 このチュートリアルは、ASEで生成したMD軌跡から
 `sova-cui`（import名: `sovapy`）を使って
-動径分布関数 $g(r)$ を計算し、第一ピークと配位数まで解析する手順です。
+動径分布関数 $g(r)$ と構造因子 $S(Q)$ を計算し、
+第一ピークと配位数まで解析する手順です。
+ここでは特に、neutron と X-ray の $S(Q)$ を同時に計算して比較します。
 
 ## RDFとは何か（先にここだけ読む）
 
@@ -64,6 +66,7 @@ $$
 
 - MD軌跡からフレームをサンプリングする
 - サンプリングした各フレームのRDFを計算して平均する
+- サンプリングした各フレームの $S(Q)$（neutron / X-ray）を計算して平均する
 - 第一ピーク位置と第一極小位置を抽出する
 - 第一極小まで積分して配位数（coordination number）を見積もる
 - プロットと数値データを保存する
@@ -106,6 +109,7 @@ ase convert md_simulation_nvt.traj md_simulation_nvt.extxyz
 
 `rdf_sova.py` は `.traj`（または多フレームextxyz）を直接読み、
 指定した間隔でフレームをサンプリングして平均RDFを計算します。
+同時に、neutron / X-ray の $S(Q)$ も平均します。
 
 ### 4.1 sova-cuiで平均RDF解析を実行
 
@@ -118,6 +122,9 @@ python rdf_sova.py md_simulation_nvt.traj --output-prefix rdf_sova --sample-star
 主なオプション:
 
 - `--dr`: RDFのビン幅（Å）
+- `--dq`: S(Q)のQビン幅（Å$^{-1}$）
+- `--qmin`: S(Q)計算の最小Q（Å$^{-1}$）
+- `--qmax`: S(Q)計算の最大Q（Å$^{-1}$）
 - `--sample-start`: サンプリング開始フレーム（平衡化前を除外）
 - `--sample-stop`: サンプリング終了フレーム（`-1` で末尾まで）
 - `--sample-step`: サンプリング間隔（例: 10なら10フレームごと）
@@ -131,6 +138,8 @@ python rdf_sova.py md_simulation_nvt.traj --output-prefix rdf_sova --sample-star
 
 - `rdf_sova.png`: RDFプロット
 - `rdf_sova.txt`: 列データ（`r`, `g(r)`）
+- `rdf_sova_sq.png`: `S(Q)_neutron` と `S(Q)_xray` の比較プロット
+- `rdf_sova_sq.txt`: 列データ（`Q`, `S(Q)_neutron`, `S(Q)_xray`）
 - `rdf_sova_summary.txt`: 第一ピーク・第一極小・配位数の要約
 
 確認ポイント:
@@ -138,6 +147,9 @@ python rdf_sova.py md_simulation_nvt.traj --output-prefix rdf_sova --sample-star
 - 第一ピークの位置が既知の最近接距離と整合するか
 - 第一極小までの配位数が期待値（例: 結晶構造の理論配位数）に近いか
 - 系が液体ならピークが幅広く、結晶ならピークが鋭くなるか
+- `S(Q)_neutron` と `S(Q)_xray` のピーク位置・強度差が妥当か
+- S(Q) の低Q側で不自然な発散がないか
+- 結晶系では鋭いブラッグピーク、非晶質では幅広いピークになるか
 
 ## 6. よくあるつまずき
 

@@ -43,7 +43,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def compute_rdf_one_frame(extxyz_path: str, args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray, float]:
+def compute_rdf_one_frame(
+    extxyz_path: str, args: argparse.Namespace
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
     f = File.open(extxyz_path)
     atoms = f.get_atoms()
 
@@ -52,13 +54,22 @@ def compute_rdf_one_frame(extxyz_path: str, args: argparse.Namespace) -> tuple[n
 
     pdf = PDFAnalysis(atoms, dr=args.dr, dq=args.dq, qmin=args.qmin, qmax=args.qmax)
     pdf.run()
-    if pdf.r is None or pdf.gr_neutron is None:
-        raise RuntimeError("sovapy PDFAnalysis failed. Check structure/cell information.")
+    if (
+        pdf.r is None
+        or pdf.gr_neutron is None
+        or pdf.q is None
+        or pdf.sq_neutron is None
+        or pdf.sq_xray is None
+    ):
+        raise RuntimeError("sovapy RDF/S(Q) analysis failed. Check structure/cell information.")
 
     r = np.asarray(pdf.r)
     g = np.asarray(pdf.gr_neutron)
+    q = np.asarray(pdf.q)
+    sq_neutron = np.asarray(pdf.sq_neutron)
+    sq_xray = np.asarray(pdf.sq_xray)
     rho = float(atoms.atom_number_density)
-    return r, g, rho
+    return r, g, q, sq_neutron, sq_xray, rho
 
 
 def main() -> None:
@@ -76,7 +87,10 @@ def main() -> None:
     sampled_indices: list[int] = []
     rho_list: list[float] = []
     r_ref = None
+    q_ref = None
     g_sum = None
+    sqn_sum = None
+    sqx_sum = None
 
     with tempfile.TemporaryDirectory(prefix="rdf_sova_") as tmpdir:
         tmp_extxyz = os.path.join(tmpdir, "frame.extxyz")
@@ -90,7 +104,7 @@ def main() -> None:
                 continue
 
             ase_write(tmp_extxyz, ase_atoms, format="extxyz")
-            r_i, g_i, rho_i = compute_rdf_one_frame(tmp_extxyz, args)
+            r_i, g_i, q_i, sqn_i, sqx_i, rho_i = compute_rdf_one_frame(tmp_extxyz, args)
 
             if r_ref is None:
                 r_ref = r_i
@@ -99,7 +113,17 @@ def main() -> None:
                 if len(r_ref) != len(r_i) or not np.allclose(r_ref, r_i):
                     raise RuntimeError("RDF grid mismatch among sampled frames.")
 
+            if q_ref is None:
+                q_ref = q_i
+                sqn_sum = np.zeros_like(sqn_i)
+                sqx_sum = np.zeros_like(sqx_i)
+            else:
+                if len(q_ref) != len(q_i) or not np.allclose(q_ref, q_i):
+                    raise RuntimeError("S(Q) grid mismatch among sampled frames.")
+
             g_sum += g_i
+            sqn_sum += sqn_i
+            sqx_sum += sqx_i
             rho_list.append(rho_i)
             sampled_indices.append(frame_idx)
 
@@ -112,6 +136,9 @@ def main() -> None:
     r = r_ref
     g = g_sum / float(len(sampled_indices))
     rho = float(np.mean(rho_list))
+    q = q_ref
+    sq_neutron = sqn_sum / float(len(sampled_indices))
+    sq_xray = sqx_sum / float(len(sampled_indices))
 
     # First peak detection excluding the near-zero region.
     valid = np.where(r > args.peak_rmin)[0]
@@ -140,6 +167,14 @@ def main() -> None:
     txt_path = f"{args.output_prefix}.txt"
     np.savetxt(txt_path, np.column_stack([r, g]), header="r_Angstrom g_r", fmt="%.6f %.6f")
 
+    sq_txt_path = f"{args.output_prefix}_sq.txt"
+    np.savetxt(
+        sq_txt_path,
+        np.column_stack([q, sq_neutron, sq_xray]),
+        header="Q_Angstrom^-1 S_Q_neutron S_Q_xray",
+        fmt="%.6f %.6f %.6f",
+    )
+
     summary_path = f"{args.output_prefix}_summary.txt"
     with open(summary_path, "w", encoding="utf-8") as fsum:
         fsum.write("RDF analysis summary (sovapy)\n")
@@ -149,6 +184,7 @@ def main() -> None:
         fsum.write(f"Sample step: {args.sample_step}\n")
         fsum.write(f"Sampled frames: {len(sampled_indices)}\n")
         fsum.write("Sampled indices: " + " ".join(map(str, sampled_indices)) + "\n")
+        fsum.write("S(Q) mode: average over sampled frames\n")
         fsum.write(f"First peak r [A]: {r_peak:.6f}\n")
         fsum.write(f"First peak g(r): {g_peak:.6f}\n")
         fsum.write(f"First minimum r [A]: {r_min:.6f}\n")
@@ -169,9 +205,23 @@ def main() -> None:
     plt.tight_layout()
     plt.savefig(fig_path, dpi=300)
 
+    sq_fig_path = f"{args.output_prefix}_sq.png"
+    plt.figure(figsize=(8, 5))
+    plt.plot(q, sq_neutron, lw=2, label="S(Q) neutron")
+    plt.plot(q, sq_xray, lw=2, label="S(Q) xray")
+    plt.xlabel("Q (Angstrom^-1)")
+    plt.ylabel("S(Q)")
+    plt.title("Structure Factor Comparison (sovapy)")
+    plt.grid(alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(sq_fig_path, dpi=300)
+
     print(f"Saved data   : {txt_path}")
+    print(f"Saved S(Q) data   : {sq_txt_path}")
     print(f"Saved summary: {summary_path}")
     print(f"Saved plot   : {fig_path}")
+    print(f"Saved S(Q) plot   : {sq_fig_path}")
     print(f"Sampled frames: {len(sampled_indices)}")
     print(f"Sampled indices: {sampled_indices}")
     print("--- RDF Analysis ---")
