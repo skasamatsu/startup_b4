@@ -6,13 +6,12 @@ Usage:
 """
 
 import argparse
-import os
-import tempfile
 import numpy as np
 import matplotlib.pyplot as plt
-from ase.io import iread, write as ase_write
+from ase.io import iread
 
-from sovapy.core.file import File
+from sovapy.core import data as sovadata
+from sovapy.core import volumes as sovavolumes
 from sovapy.core.analysis import PDFAnalysis
 
 
@@ -44,10 +43,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def compute_rdf_one_frame(
-    extxyz_path: str, args: argparse.Namespace
+    ase_atoms, args: argparse.Namespace
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
-    f = File.open(extxyz_path)
-    atoms = f.get_atoms()
+    atoms = ase_to_sovapy_atoms(ase_atoms)
 
     if not atoms.volume.periodic:
         raise RuntimeError("Periodic cell info is required for RDF analysis.")
@@ -72,6 +70,30 @@ def compute_rdf_one_frame(
     return r, g, q, sq_neutron, sq_xray, rho
 
 
+def ase_to_sovapy_atoms(ase_atoms) -> sovadata.Atoms:
+    """Convert ASE Atoms to sovapy Atoms without intermediate files."""
+    if not np.all(ase_atoms.pbc):
+        raise RuntimeError("Periodic boundary condition is required for RDF analysis.")
+
+    cell = np.asarray(ase_atoms.cell.array, dtype=float)
+    if cell.shape != (3, 3):
+        raise RuntimeError("Invalid cell shape in ASE Atoms.")
+
+    volume_str = (
+        "TRI "
+        f"{cell[0,0]} {cell[0,1]} {cell[0,2]} "
+        f"{cell[1,0]} {cell[1,1]} {cell[1,2]} "
+        f"{cell[2,0]} {cell[2,1]} {cell[2,2]}"
+    )
+    volume = sovavolumes.Volume.fromstring(volume_str)
+    if volume is None:
+        raise RuntimeError("Failed to construct sovapy volume from ASE cell.")
+
+    positions = np.asarray(ase_atoms.get_positions(), dtype=float)
+    symbols = list(ase_atoms.get_chemical_symbols())
+    return sovadata.Atoms(positions, None, symbols, volume)
+
+
 def main() -> None:
     args = parse_args()
 
@@ -92,43 +114,39 @@ def main() -> None:
     sqn_sum = None
     sqx_sum = None
 
-    with tempfile.TemporaryDirectory(prefix="rdf_sova_") as tmpdir:
-        tmp_extxyz = os.path.join(tmpdir, "frame.extxyz")
+    for frame_idx, ase_atoms in enumerate(iread(args.structure, index=":")):
+        if frame_idx < args.sample_start:
+            continue
+        if stop is not None and frame_idx >= stop:
+            break
+        if (frame_idx - args.sample_start) % args.sample_step != 0:
+            continue
 
-        for frame_idx, ase_atoms in enumerate(iread(args.structure, index=":")):
-            if frame_idx < args.sample_start:
-                continue
-            if stop is not None and frame_idx >= stop:
-                break
-            if (frame_idx - args.sample_start) % args.sample_step != 0:
-                continue
+        r_i, g_i, q_i, sqn_i, sqx_i, rho_i = compute_rdf_one_frame(ase_atoms, args)
 
-            ase_write(tmp_extxyz, ase_atoms, format="extxyz")
-            r_i, g_i, q_i, sqn_i, sqx_i, rho_i = compute_rdf_one_frame(tmp_extxyz, args)
+        if r_ref is None:
+            r_ref = r_i
+            g_sum = np.zeros_like(g_i)
+        else:
+            if len(r_ref) != len(r_i) or not np.allclose(r_ref, r_i):
+                raise RuntimeError("RDF grid mismatch among sampled frames.")
 
-            if r_ref is None:
-                r_ref = r_i
-                g_sum = np.zeros_like(g_i)
-            else:
-                if len(r_ref) != len(r_i) or not np.allclose(r_ref, r_i):
-                    raise RuntimeError("RDF grid mismatch among sampled frames.")
+        if q_ref is None:
+            q_ref = q_i
+            sqn_sum = np.zeros_like(sqn_i)
+            sqx_sum = np.zeros_like(sqx_i)
+        else:
+            if len(q_ref) != len(q_i) or not np.allclose(q_ref, q_i):
+                raise RuntimeError("S(Q) grid mismatch among sampled frames.")
 
-            if q_ref is None:
-                q_ref = q_i
-                sqn_sum = np.zeros_like(sqn_i)
-                sqx_sum = np.zeros_like(sqx_i)
-            else:
-                if len(q_ref) != len(q_i) or not np.allclose(q_ref, q_i):
-                    raise RuntimeError("S(Q) grid mismatch among sampled frames.")
+        g_sum += g_i
+        sqn_sum += sqn_i
+        sqx_sum += sqx_i
+        rho_list.append(rho_i)
+        sampled_indices.append(frame_idx)
 
-            g_sum += g_i
-            sqn_sum += sqn_i
-            sqx_sum += sqx_i
-            rho_list.append(rho_i)
-            sampled_indices.append(frame_idx)
-
-            if len(sampled_indices) >= args.max_samples:
-                break
+        if len(sampled_indices) >= args.max_samples:
+            break
 
     if not sampled_indices:
         raise RuntimeError("No frame was sampled. Check --sample-start/--sample-stop/--sample-step.")
