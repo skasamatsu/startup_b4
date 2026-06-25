@@ -8,7 +8,7 @@
 
 ## RDFとは何か（先にここだけ読む）
 
-RDF（Radial Distribution Function, 動径分布関数）$g(r)$ は、
+RDF（Radial Distribution Function, 動径分布関数） $g(r)$ は、
 「ある原子から距離 $r$ に、どれくらい原子が存在しやすいか」を表す関数です。
 
 - $g(r)=1$:
@@ -32,19 +32,19 @@ RDF（Radial Distribution Function, 動径分布関数）$g(r)$ は、
 RDFそのものの代表的な定義式は次です。
 
 $$
-g(r)=\frac{1}{4\pi r^2\rho N}\left\langle\sum_{i=1}^{N}\sum_{j\neq i}\delta\!\left(r-r_{ij}\right)\right\rangle
+g(r)=\frac{1}{4\pi r^2\rho N}\left\langle\sum_{i=1}^{N}\sum_{j\neq i}\delta \left(r-r_{ij}\right)\right\rangle
 $$
 
-ここで、$N$ は原子数、$\rho$ は数密度、$r_{ij}$ は原子 $i,j$ の距離、
+ここで、 $N$ は原子数、 $\rho$ は数密度、 $r_{ij}$ は原子 $i,j$ の距離、
 $\langle\cdots\rangle$ は時間平均（またはアンサンブル平均）です。
 
 配位数はこの $g(r)$ から計算する派生量で、式は次です。
 
 $$
-N(r)=4\pi\rho\int_0^r g(r')r'^2\,dr'
+N(r)=4\pi\rho\int_0^r g(r')r'^2 dr'
 $$
 
-ここで、$\rho$ は数密度（atoms/Å$^3$）です。
+ここで、 $\rho$ は数密度（atoms/Å $^3$ ）です。
 
 結晶・液体・ガラスでの典型的な違い:
 
@@ -74,7 +74,7 @@ $$
 基本式（RDFの定義）:
 
 $$
-g(r)=\frac{1}{4\pi r^2\rho N}\left\langle\sum_{i=1}^{N}\sum_{j\neq i}\delta\!\left(r-r_{ij}\right)\right\rangle
+g(r)=\frac{1}{4\pi r^2\rho N}\left\langle\sum_{i=1}^{N}\sum_{j\neq i}\delta \left(r-r_{ij}\right)\right\rangle
 $$
 
 このチュートリアルで配位数を見積もるときは、次の積分式を使います。
