@@ -187,6 +187,35 @@ python md.py 2>&1 | tee md_run.log
 
 同時に `md_simulation_nvt.traj` が保存されます。
 
+### 7.1 瞬間温度の時間変化を可視化する（ログ解析）
+
+`md.py` のログには、100ステップごとに次の形式で温度が出力されます。
+
+```text
+Step: 100, Temp: 305.12 K, Epot: ..., Ekin: ..., Etot: ...
+```
+
+この `Step` と `Temp` を `md_run.log` から抽出し、時間変化をプロットします。
+
+1. 追加したスクリプトを実行する
+
+```bash
+python plot_temperature_from_log.py --log md_run.log --dt-fs 2.4 --target-temp 300
+```
+
+2. 出力ファイルを確認する
+
+```bash
+ls -lh temperature_vs_time.png temp_vs_step.dat
+```
+
+`temperature_vs_time.png` が生成されれば完了です。
+
+補足:
+
+- `ModuleNotFoundError: matplotlib` が出る場合は `pip install matplotlib` を実行
+- 温度の揺らぎが大きすぎる場合は、`friction` や初期構造・ステップ幅を見直す
+
 ## 8. 可視化まで実施する
 
 ### 8.1 まずファイル生成を確認
